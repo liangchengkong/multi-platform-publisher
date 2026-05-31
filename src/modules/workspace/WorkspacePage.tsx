@@ -22,7 +22,6 @@ export function WorkspacePage() {
     isPublishing,
     updateSource,
     toggleSelectedPlatform,
-    updateAdaptedContent,
     publishSelected,
     clearRecords,
     resetAll,
@@ -94,7 +93,6 @@ export function WorkspacePage() {
           activePlatform={activePlatform}
           activeAdapted={activeAdapted}
           onSelectPlatform={setActivePlatformId}
-          onUpdateAdapted={updateAdaptedContent}
         />
       </div>
     </main>

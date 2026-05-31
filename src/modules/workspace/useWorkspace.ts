@@ -12,7 +12,6 @@ import {
   getWorkspaceFromApi,
   publishSelectedInApi,
   resetWorkspaceInApi,
-  updateAdaptedContentInApi,
   updateContentInApi,
 } from './api'
 
@@ -67,24 +66,6 @@ function resolveActivePlatformId(state: WorkspaceState, activePlatformId: Platfo
   return state.platforms.find((platform) => platform.enabled)?.id ?? state.platforms[0]?.id ?? 'wechat'
 }
 
-function updateAdaptedContentInState(
-  state: WorkspaceState,
-  platformId: PlatformId,
-  patch: Pick<AdaptedContent, 'title' | 'body'>,
-): WorkspaceState {
-  return {
-    ...state,
-    adapted: {
-      ...state.adapted,
-      [platformId]: {
-        ...state.adapted[platformId],
-        ...patch,
-        updatedAt: new Date().toISOString(),
-      },
-    },
-  }
-}
-
 export function useWorkspace() {
   const [state, setState] = useState<WorkspaceState>(() => createSeedWorkspace())
   const [activePlatformId, setActivePlatformId] = useState<PlatformId>('wechat')
@@ -95,7 +76,6 @@ export function useWorkspace() {
   })
   const [accountStatuses, setAccountStatuses] = useState<PlatformAccountStatus[]>([])
   const [saveRevision, setSaveRevision] = useState(0)
-  const [adaptedSaveRevision, setAdaptedSaveRevision] = useState(0)
   const [syncRevision, setSyncRevision] = useState(0)
   const [hasLocalEdits, setHasLocalEdits] = useState(false)
 
@@ -196,39 +176,6 @@ export function useWorkspace() {
     return () => window.clearTimeout(timer)
   }, [saveRevision, state.source.body, state.source.id, state.source.title])
 
-  useEffect(() => {
-    if (adaptedSaveRevision === 0) return
-
-    const activeAdapted = state.adapted[activePlatformId]
-    if (!activeAdapted.id) return
-    const adaptedContentId = activeAdapted.id
-
-    const timer = window.setTimeout(() => {
-      setOperationStatus({ type: 'saving', message: '正在保存平台适配内容...' })
-      void updateAdaptedContentInApi(adaptedContentId, {
-        title: activeAdapted.title,
-        body: activeAdapted.body,
-      })
-        .then(() => {
-          setHasLocalEdits(false)
-          setOperationStatus({
-            type: 'saved',
-            message: '平台适配内容已保存',
-            updatedAt: new Date().toISOString(),
-          })
-        })
-        .catch(() => {
-          setOperationStatus({
-            type: 'error',
-            message: '平台适配内容保存失败，请稍后重试',
-            updatedAt: new Date().toISOString(),
-          })
-        })
-    }, 500)
-
-    return () => window.clearTimeout(timer)
-  }, [activePlatformId, adaptedSaveRevision, state.adapted])
-
   function updateSource(nextSource: Pick<SourceContent, 'title' | 'body'>) {
     setState((current) => updateSourceContent(current, nextSource))
     setHasLocalEdits(true)
@@ -239,13 +186,6 @@ export function useWorkspace() {
   function toggleSelectedPlatform(platformId: PlatformId) {
     setState((current) => toggleSelectedPlatformInState(current, platformId))
     setActivePlatformId(platformId)
-  }
-
-  function updateAdaptedContent(platformId: PlatformId, patch: Pick<AdaptedContent, 'title' | 'body'>) {
-    setState((current) => updateAdaptedContentInState(current, platformId, patch))
-    setHasLocalEdits(true)
-    setOperationStatus({ type: 'saving', message: '等待保存平台适配内容...' })
-    setAdaptedSaveRevision((revision) => revision + 1)
   }
 
   async function publishSelected() {
@@ -329,7 +269,6 @@ export function useWorkspace() {
     isPublishing,
     updateSource,
     toggleSelectedPlatform,
-    updateAdaptedContent,
     publishSelected,
     clearRecords,
     resetAll,

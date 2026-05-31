@@ -4,9 +4,8 @@ interface AdaptationPreviewProps {
   platforms: PlatformDefinition[]
   activePlatformId: PlatformId
   activePlatform?: PlatformDefinition
-  activeAdapted: AdaptedContent
+  activeAdapted?: AdaptedContent
   onSelectPlatform: (platformId: PlatformId) => void
-  onUpdateAdapted: (platformId: PlatformId, patch: Pick<AdaptedContent, 'title' | 'body'>) => void
 }
 
 function countWords(value: string) {
@@ -19,7 +18,6 @@ export function AdaptationPreview({
   activePlatform,
   activeAdapted,
   onSelectPlatform,
-  onUpdateAdapted,
 }: AdaptationPreviewProps) {
   return (
     <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
@@ -45,7 +43,7 @@ export function AdaptationPreview({
           </div>
         </div>
 
-        {activePlatform ? (
+        {activePlatform && activeAdapted ? (
           <div className="space-y-4 p-5">
             <div className={`rounded-lg border p-4 ${activePlatform.accentClass}`}>
               <div className="flex items-center justify-between gap-3">
@@ -56,26 +54,19 @@ export function AdaptationPreview({
               </div>
               <div className="mt-2 text-sm leading-5">{activePlatform.styleGuide}</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">适配标题</label>
-              <input
-                value={activeAdapted.title}
-                onChange={(event) =>
-                  onUpdateAdapted(activePlatformId, { title: event.target.value, body: activeAdapted.body })
-                }
-                className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">适配正文</label>
-              <textarea
-                value={activeAdapted.body}
-                onChange={(event) =>
-                  onUpdateAdapted(activePlatformId, { title: activeAdapted.title, body: event.target.value })
-                }
-                className="mt-2 min-h-[360px] w-full resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-100"
-              />
-            </div>
+
+            <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-medium text-slate-500">适配标题</div>
+              <h3 className="mt-2 break-words text-base font-semibold leading-6 text-slate-950">{activeAdapted.title}</h3>
+            </section>
+
+            <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-medium text-slate-500">适配正文</div>
+              <pre className="mt-2 max-h-[420px] whitespace-pre-wrap break-words font-sans text-sm leading-6 text-slate-700">
+                {activeAdapted.body}
+              </pre>
+            </section>
+
             <div className="flex flex-wrap gap-2">
               {activeAdapted.tags.map((tag) => (
                 <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
