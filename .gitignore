@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+AGENTS.md
+CLAUDE.md
 *.db
 *.db-journal
 *.sqlite
