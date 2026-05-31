@@ -1,6 +1,11 @@
 import { useState } from 'react'
-import type { PlatformDetectionResult, PlatformInput, PlatformSampleAnalysisResult } from '@/domain/platforms/model'
-import { analyzePlatformSamplesInApi, detectPlatformInApi } from './api'
+import type {
+  PlatformDetectionResult,
+  PlatformInferenceResult,
+  PlatformInput,
+  PlatformSampleAnalysisResult,
+} from '@/domain/platforms/model'
+import { analyzePlatformSamplesInApi, detectPlatformInApi, inferPlatformConfigInApi } from './api'
 
 interface PlatformUrlDetectorProps {
   onDetected: (platform: PlatformInput) => void
@@ -16,10 +21,12 @@ function parseSamples(value: string) {
 
 export function PlatformUrlDetector({ onDetected }: PlatformUrlDetectorProps) {
   const [url, setUrl] = useState('')
+  const [description, setDescription] = useState('')
   const [samplesText, setSamplesText] = useState('')
   const [isDetecting, setIsDetecting] = useState(false)
   const [result, setResult] = useState<PlatformDetectionResult | null>(null)
   const [analysis, setAnalysis] = useState<PlatformSampleAnalysisResult | null>(null)
+  const [inference, setInference] = useState<PlatformInferenceResult | null>(null)
   const [error, setError] = useState('')
 
   async function detect() {
@@ -31,21 +38,30 @@ export function PlatformUrlDetector({ onDetected }: PlatformUrlDetectorProps) {
     setIsDetecting(true)
     setError('')
     setAnalysis(null)
+    setInference(null)
 
     try {
-      const nextResult = await detectPlatformInApi(url)
       const samples = parseSamples(samplesText)
+      const nextResult = await detectPlatformInApi(url)
+      let nextPlatform = nextResult.platform
 
       if (samples.length > 0) {
-        const nextAnalysis = await analyzePlatformSamplesInApi(nextResult.platform, samples)
-        setResult({ ...nextResult, platform: nextAnalysis.platform })
+        const nextAnalysis = await analyzePlatformSamplesInApi(nextPlatform, samples)
+        nextPlatform = nextAnalysis.platform
         setAnalysis(nextAnalysis)
-      } else {
-        setResult(nextResult)
       }
+
+      if (!nextResult.matched || description.trim()) {
+        const nextInference = await inferPlatformConfigInApi(nextPlatform, description, samples)
+        nextPlatform = nextInference.platform
+        setInference(nextInference)
+      }
+
+      setResult({ ...nextResult, platform: nextPlatform })
     } catch (currentError) {
       setResult(null)
       setAnalysis(null)
+      setInference(null)
       setError(currentError instanceof Error ? currentError.message : '识别平台失败')
     } finally {
       setIsDetecting(false)
@@ -60,7 +76,7 @@ export function PlatformUrlDetector({ onDetected }: PlatformUrlDetectorProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">智能新增</p>
         <h2 className="mt-2 text-lg font-semibold">通过网址识别平台</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          输入平台首页或创作者后台地址，系统会先匹配内置模板；也可以粘贴样例内容，让系统本地分析标题、段落和标签习惯。
+          输入平台网址后，系统会先匹配模板；如果未命中模板，或你补充了平台描述，系统会用本地推断服务生成更完整的配置建议。
         </p>
       </div>
 
@@ -88,6 +104,16 @@ export function PlatformUrlDetector({ onDetected }: PlatformUrlDetectorProps) {
         </div>
 
         <label className="grid gap-1 text-sm font-medium text-slate-700">
+          平台描述，可选
+          <textarea
+            className="min-h-20 rounded-md border border-slate-300 px-3 py-2 text-sm font-normal leading-6 outline-none focus:border-slate-500"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="例如：这是一个技术博客平台，适合发布教程、代码和工程实践"
+          />
+        </label>
+
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
           样例内容，可选
           <textarea
             className="min-h-28 rounded-md border border-slate-300 px-3 py-2 text-sm font-normal leading-6 outline-none focus:border-slate-500"
@@ -110,7 +136,8 @@ export function PlatformUrlDetector({ onDetected }: PlatformUrlDetectorProps) {
             <div>
               <p className="text-xs font-medium text-slate-500">
                 {result.matched ? '已命中平台模板' : '未命中模板，已生成通用配置'}
-                {analysis ? '，并已合并样例分析' : ''}
+                {analysis ? '，已合并样例分析' : ''}
+                {inference ? '，已合并推断建议' : ''}
               </p>
               <h3 className="mt-1 text-base font-semibold">{platform.displayName}</h3>
               <p className="mt-1 text-sm text-slate-600">{platform.description}</p>
@@ -147,6 +174,22 @@ export function PlatformUrlDetector({ onDetected }: PlatformUrlDetectorProps) {
               <ul className="mt-3 space-y-1 text-xs leading-5 text-slate-600">
                 {analysis.suggestions.map((suggestion) => (
                   <li key={suggestion}>{suggestion}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {inference ? (
+            <div className="mt-4 rounded-md border border-blue-100 bg-blue-50 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-blue-900">推断建议</p>
+                <span className="rounded-full bg-white px-2 py-1 text-xs text-blue-700">
+                  置信度 {Math.round(inference.confidence * 100)}%
+                </span>
+              </div>
+              <ul className="mt-2 space-y-1 text-xs leading-5 text-blue-800">
+                {inference.reasoning.map((item) => (
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>

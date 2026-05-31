@@ -1,5 +1,10 @@
 import type { PlatformDefinition } from '@/domain/publisher/model'
-import type { PlatformDetectionResult, PlatformInput, PlatformSampleAnalysisResult } from '@/domain/platforms/model'
+import type {
+  PlatformDetectionResult,
+  PlatformInferenceResult,
+  PlatformInput,
+  PlatformSampleAnalysisResult,
+} from '@/domain/platforms/model'
 
 export async function getPlatformsFromApi(): Promise<PlatformDefinition[]> {
   const response = await fetch('/api/platforms', {
@@ -90,4 +95,25 @@ export async function analyzePlatformSamplesInApi(platform: PlatformInput, sampl
   }
 
   return response.json() as Promise<PlatformSampleAnalysisResult>
+}
+
+export async function inferPlatformConfigInApi(
+  platform: PlatformInput,
+  description: string,
+  samples: string[],
+): Promise<PlatformInferenceResult> {
+  const response = await fetch('/api/platforms/infer', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ platform, description, samples }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to infer platform config: ${response.status}`)
+  }
+
+  return response.json() as Promise<PlatformInferenceResult>
 }

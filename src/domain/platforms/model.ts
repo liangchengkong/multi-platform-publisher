@@ -39,3 +39,12 @@ export interface PlatformSampleAnalysisResult {
   suggestions: string[]
   platform: PlatformInput
 }
+
+export type PlatformInferenceProvider = 'local-rules' | 'ai'
+
+export interface PlatformInferenceResult {
+  provider: PlatformInferenceProvider
+  confidence: number
+  reasoning: string[]
+  platform: PlatformInput
+}
