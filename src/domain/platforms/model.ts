@@ -42,6 +42,31 @@ export interface PlatformSampleAnalysisResult {
 
 export type PlatformInferenceProvider = 'local-rules' | 'ai'
 
+export type PlatformContentType =
+  | 'long_article'
+  | 'short_post'
+  | 'video_description'
+  | 'qa_answer'
+  | 'technical_article'
+  | 'product_note'
+
+export type PlatformStylePreference =
+  | 'professional'
+  | 'conversational'
+  | 'short_sentences'
+  | 'long_form'
+  | 'with_hashtags'
+  | 'preserve_markdown'
+  | 'strip_markdown'
+
+export interface PlatformInferenceContext {
+  platformName?: string
+  contentType?: PlatformContentType
+  officialRulesUrl?: string
+  knownRules?: string
+  targetStyles?: PlatformStylePreference[]
+}
+
 export interface PlatformInferenceResult {
   provider: PlatformInferenceProvider
   confidence: number

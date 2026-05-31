@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { inferPlatformConfig } from '@/domain/platforms/inference'
-import type { PlatformInput } from '@/domain/platforms/model'
+import type { PlatformInferenceContext, PlatformInput } from '@/domain/platforms/model'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
       platform?: unknown
       description?: unknown
       samples?: unknown
+      context?: unknown
     }
 
     if (!body.platform || typeof body.platform !== 'object') {
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
       platform: body.platform as PlatformInput,
       description: typeof body.description === 'string' ? body.description : '',
       samples,
+      context: body.context && typeof body.context === 'object' ? body.context as PlatformInferenceContext : undefined,
     })
 
     return NextResponse.json(result)

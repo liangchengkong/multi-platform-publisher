@@ -2,6 +2,7 @@ import type { PlatformDefinition } from '@/domain/publisher/model'
 import type {
   PlatformDetectionResult,
   PlatformInferenceResult,
+  PlatformInferenceContext,
   PlatformInput,
   PlatformSampleAnalysisResult,
 } from '@/domain/platforms/model'
@@ -101,6 +102,7 @@ export async function inferPlatformConfigInApi(
   platform: PlatformInput,
   description: string,
   samples: string[],
+  context?: PlatformInferenceContext,
 ): Promise<PlatformInferenceResult> {
   const response = await fetch('/api/platforms/infer', {
     method: 'POST',
@@ -108,7 +110,7 @@ export async function inferPlatformConfigInApi(
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ platform, description, samples }),
+    body: JSON.stringify({ platform, description, samples, context }),
   })
 
   if (!response.ok) {
