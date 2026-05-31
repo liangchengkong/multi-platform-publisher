@@ -1,36 +1,199 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 多平台内容发布工具
 
-## Getting Started
+面向创作者的多平台内容发布工作台。用户输入一份原文后，系统会自动适配公众号、知乎、B站、小红书以及用户自定义平台的内容格式，并支持一键模拟发布、发布历史记录和平台账号状态管理。
 
-First, run the development server:
+## 功能概览
+
+- 原文编辑：输入标题和 Markdown 正文。
+- 平台适配：自动生成各平台标题、正文、标签和字数提醒。
+- 手动微调：每个平台的适配内容可以单独编辑保存。
+- 模拟发布：选择多个平台后一键发布，结果写入后端数据库。
+- 发布历史：查看、清空每次模拟发布结果。
+- 平台管理：启用/禁用内置平台，新增、编辑、删除自定义平台。
+- 账号管理：统一展示平台账号状态，B站预留真实 OAuth 授权入口，其他平台使用模拟账号。
+- 数据重置：首页“格式化数据”会把数据库恢复为默认演示数据。
+
+## 技术栈
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Prisma 7
+- SQLite / libSQL
+
+## 项目结构
+
+```text
+src/
+  app/                  # Next.js 页面路由和 API 路由
+    api/                # 后端 HTTP 接口入口
+    accounts/           # 账号管理页
+    platforms/          # 平台管理页
+    page.tsx            # 工作台首页
+
+  modules/              # 前端页面模块
+    workspace/          # 内容编辑、平台选择、适配预览、发布历史
+    platform-rules/     # 平台管理、平台表单、规则展示
+    accounts/           # 账号状态、授权入口
+
+  domain/               # 业务领域模型和规则
+    publisher/          # 内容、适配结果、发布记录类型与适配器
+    platforms/          # 内置平台定义、平台能力模型
+    accounts/           # 账号状态模型
+
+  server/               # 后端业务服务层
+    workspace/          # 工作台聚合数据、数据重置
+    platforms/          # 平台查询、创建、编辑、删除
+    adaptation/         # 原文到平台适配内容的生成
+    accounts/           # 账号 Provider Registry
+    publishing/         # 模拟发布
+
+  lib/
+    db.ts               # Prisma 数据库客户端
+
+prisma/
+  schema.prisma         # 数据库模型
+  migrations/           # 数据库迁移
+```
+
+## 核心架构
+
+项目采用 Next.js 全栈单体架构：
+
+```text
+页面组件
+  -> modules/*/api.ts
+  -> app/api/*
+  -> server/*
+  -> Prisma
+  -> SQLite/libSQL
+```
+
+平台扩展采用数据库驱动：
+
+- 内置平台：使用专属适配器，保证公众号、知乎、B站、小红书有不同风格。
+- 自定义平台：用户在前端表单配置规则，后端使用配置化适配器生成内容。
+- 页面层不写平台专属判断，只消费后端返回的平台列表、适配内容和账号状态。
+
+## 数据模型
+
+核心表：
+
+- `Content`：原文内容。
+- `Platform`：平台定义、启用状态、UI 信息、适配配置。
+- `PlatformAccount`：平台账号授权或模拟账号状态。
+- `AdaptedContent`：各平台适配后的内容。
+- `PublishTask`：发布任务。
+- `PublishRecord`：发布结果记录。
+
+## API 概览
+
+```text
+GET    /api/workspace
+POST   /api/workspace/reset
+
+GET    /api/platforms
+POST   /api/platforms
+PATCH  /api/platforms/[id]
+DELETE /api/platforms/[id]
+
+GET    /api/accounts
+POST   /api/accounts/[platform]/auth-url
+GET    /api/accounts/[platform]/status
+POST   /api/accounts/[platform]/disconnect
+GET    /api/auth/[platform]/callback
+
+PATCH  /api/content/[id]
+PATCH  /api/adapted-content/[id]
+
+POST   /api/publish
+GET    /api/publish/records
+DELETE /api/publish/records
+```
+
+## 本地运行
+
+安装依赖：
+
+```bash
+npm install
+```
+
+准备数据库：
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+启动开发服务：
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 环境变量
 
-## Learn More
+基础配置：
 
-To learn more about Next.js, take a look at the following resources:
+```env
+DATABASE_URL="file:./dev.db"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+B站 OAuth 授权需要额外配置：
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```env
+BILIBILI_CLIENT_ID="你的 B站 Client ID"
+BILIBILI_CLIENT_SECRET="你的 B站 Client Secret"
+```
 
-## Deploy on Vercel
+未配置 B站 OAuth 时，账号页会提示缺少配置，但模拟发布和自定义平台功能不受影响。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 自定义平台
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+进入 `/platforms`，点击“新增平台”，可以配置：
+
+- 平台标识
+- 平台名称和短名称
+- 描述和颜色
+- 标题/正文长度限制
+- 必填字段
+- 风格说明
+- 标题后缀
+- 正文前缀/后缀
+- 固定标签
+- 是否清理 Markdown
+- 是否压缩空行
+
+创建后：
+
+- 工作台会自动出现该平台。
+- 修改原文会生成该平台适配内容。
+- 可以手动微调适配正文。
+- 可以参与一键模拟发布。
+- 账号页会显示模拟账号状态。
+
+## 常用命令
+
+```bash
+npm run dev      # 启动开发服务
+npm run lint     # ESLint 检查
+npm run build    # 生产构建
+```
+
+## 当前边界
+
+当前版本是可演示 MVP，不是生产级发布系统：
+
+- 真实发布 API 尚未接入。
+- 自定义平台只支持适配和模拟发布。
+- B站只预留 OAuth 授权入口，不执行真实文章发布。
+- 暂未实现多用户、多草稿、任务队列、失败重试和生产级密钥管理。

@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Content {
+  id              String           @id @default(cuid())
+  title           String
+  body            String
+  contentType     String           @default("markdown")
+  status          String           @default("draft")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  adaptedContents AdaptedContent[]
+  publishTasks    PublishTask[]
+  publishRecords  PublishRecord[]
+}
+
+model Platform {
+  id                String            @id @default(cuid())
+  name              String            @unique
+  displayName       String
+  shortName         String            @default("")
+  description       String            @default("")
+  colorClass        String            @default("bg-slate-600")
+  accentClass       String            @default("border-slate-500 bg-slate-50 text-slate-800")
+  source            String            @default("builtin")
+  enabled           Boolean           @default(true)
+  maxTitleLength    Int               @default(80)
+  maxContentLength  Int               @default(20000)
+  requiredFields    String            @default("[]")
+  styleGuide        String            @default("")
+  adapterKey        String            @default("")
+  config            String            @default("{}")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  accounts          PlatformAccount[]
+  adaptedContents   AdaptedContent[]
+  publishRecords    PublishRecord[]
+}
+
+model PlatformAccount {
+  id                    String          @id @default(cuid())
+  platformId            String
+  accountName           String
+  authType              String          @default("mock")
+  status                String          @default("connected")
+  configEncrypted       String?
+  accessTokenEncrypted  String?
+  refreshTokenEncrypted String?
+  tokenExpiresAt        DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  platform              Platform        @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  publishRecords        PublishRecord[]
+
+  @@index([platformId])
+}
+
+model AdaptedContent {
+  id             String          @id @default(cuid())
+  contentId      String
+  platformId     String
+  title          String
+  body           String
+  tags           String          @default("[]")
+  warnings       String          @default("[]")
+  isEdited       Boolean         @default(false)
+  adaptedAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  content        Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  platform       Platform        @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  publishRecords PublishRecord[]
+
+  @@unique([contentId, platformId])
+  @@index([platformId])
+}
+
+model PublishTask {
+  id            String          @id @default(cuid())
+  contentId     String
+  mode          String          @default("simulate")
+  status        String          @default("pending")
+  platformCount Int             @default(0)
+  successCount  Int             @default(0)
+  failedCount   Int             @default(0)
+  createdAt     DateTime        @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  content       Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  records       PublishRecord[]
+
+  @@index([contentId])
+}
+
+model PublishRecord {
+  id               String          @id @default(cuid())
+  taskId           String?
+  contentId        String
+  platformId       String
+  adaptedContentId String?
+  accountId        String?
+  status           String          @default("pending")
+  message          String          @default("")
+  platformPostId   String?
+  platformUrl      String?
+  requestSnapshot  String?
+  responseSnapshot String?
+  publishedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  task             PublishTask?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  content          Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  platform         Platform        @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  adaptedContent   AdaptedContent? @relation(fields: [adaptedContentId], references: [id], onDelete: SetNull)
+  account          PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@index([contentId])
+  @@index([platformId])
+  @@index([adaptedContentId])
+  @@index([accountId])
+}
