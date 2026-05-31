@@ -39,21 +39,27 @@ export function usePlatformRules() {
     if (!currentPlatform) return
 
     const nextEnabled = !currentPlatform.enabled
-    setPlatforms((current) => current.map((platform) =>
-      platform.id === platformId ? { ...platform, enabled: nextEnabled } : platform,
-    ))
+    setPlatforms((current) =>
+      current.map((platform) =>
+        platform.id === platformId ? { ...platform, enabled: nextEnabled } : platform,
+      ),
+    )
 
     void updatePlatformInApi(platformId, { enabled: nextEnabled })
       .then((updatedPlatform) => {
-        setPlatforms((current) => current.map((platform) =>
-          platform.id === platformId ? updatedPlatform : platform,
-        ))
+        setPlatforms((current) =>
+          current.map((platform) =>
+            platform.id === platformId ? updatedPlatform : platform,
+          ),
+        )
         setStatus({ type: 'saved', message: `${updatedPlatform.displayName} 已更新` })
       })
       .catch(() => {
-        setPlatforms((current) => current.map((platform) =>
-          platform.id === platformId ? { ...platform, enabled: currentPlatform.enabled } : platform,
-        ))
+        setPlatforms((current) =>
+          current.map((platform) =>
+            platform.id === platformId ? { ...platform, enabled: currentPlatform.enabled } : platform,
+          ),
+        )
         setStatus({ type: 'error', message: '平台状态保存失败' })
       })
   }

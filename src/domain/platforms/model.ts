@@ -15,3 +15,12 @@ export interface PlatformInput {
 }
 
 export type PlatformView = PlatformDefinition
+
+export type PlatformDetectionSource = 'template' | 'fallback'
+
+export interface PlatformDetectionResult {
+  matched: boolean
+  source: PlatformDetectionSource
+  hostname: string
+  platform: PlatformInput
+}
