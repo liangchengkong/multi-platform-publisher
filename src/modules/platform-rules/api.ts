@@ -1,5 +1,5 @@
 import type { PlatformDefinition } from '@/domain/publisher/model'
-import type { PlatformDetectionResult, PlatformInput } from '@/domain/platforms/model'
+import type { PlatformDetectionResult, PlatformInput, PlatformSampleAnalysisResult } from '@/domain/platforms/model'
 
 export async function getPlatformsFromApi(): Promise<PlatformDefinition[]> {
   const response = await fetch('/api/platforms', {
@@ -73,4 +73,21 @@ export async function detectPlatformInApi(url: string): Promise<PlatformDetectio
   }
 
   return response.json() as Promise<PlatformDetectionResult>
+}
+
+export async function analyzePlatformSamplesInApi(platform: PlatformInput, samples: string[]): Promise<PlatformSampleAnalysisResult> {
+  const response = await fetch('/api/platforms/analyze-samples', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ platform, samples }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to analyze platform samples: ${response.status}`)
+  }
+
+  return response.json() as Promise<PlatformSampleAnalysisResult>
 }

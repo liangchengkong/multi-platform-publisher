@@ -24,3 +24,18 @@ export interface PlatformDetectionResult {
   hostname: string
   platform: PlatformInput
 }
+
+export interface PlatformSampleMetrics {
+  sampleCount: number
+  averageTitleLength: number
+  averageContentLength: number
+  averageParagraphLength: number
+  hashtagCount: number
+  hasMarkdown: boolean
+}
+
+export interface PlatformSampleAnalysisResult {
+  metrics: PlatformSampleMetrics
+  suggestions: string[]
+  platform: PlatformInput
+}
